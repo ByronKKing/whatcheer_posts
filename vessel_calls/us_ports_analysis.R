@@ -89,11 +89,13 @@ finaldf = rbind(append_df,append_df2)
 # Analysis
 
 ###introduction to different ship types/ship metrics
-##overall look at summed dwt for different ship types
-##look at top ports in each category and overall
-##RI overview, Davisville spotlight
-##cluster analysis of similar ports for 2015 (or over many years)
-##which port is Davisville like, i.e. sister ports?
+##overall look at summed dwt for different ship types -- done
+##look at top ports in each category and overall -- done
+##overall look by state (and by vessel type) -- 12/11 -- done
+##similar composition to RI? -- 12/11 -- done
+##RI overview, Davisville spotlight -- 12/12
+##cluster analysis of similar ports for 2015 (or over many years) -- 12/12
+##which port is Davisville like, i.e. sister ports? -- 12/12
 
 
 
@@ -180,9 +182,182 @@ ggplot(plotdf, aes(year, value, fill = variable)) +
 ## look at top ports in each category and overall
 df[,colnames(df)[!(colnames(df) %in% c("port","state"))]] = 
   lapply(df[,colnames(df)[!(colnames(df) %in% c("port","state"))]],as.numeric)
-plotdf = df[df$port!="Grand Total",]
-plotdf = plotdf[plotdf$year==2015,]
+topdf = df[df$port!="Grand Total",]
+topdf = topdf[topdf$year==2015,]
+
+###overall
+ggplot(head(topdf[order(-topdf$overall_calls),c("port","state","overall_calls")],8), 
+       aes(reorder(port, overall_calls), overall_calls, fill = port)) +
+  coord_flip() +
+  geom_bar(stat = "identity") +
+  xlab("Port") +
+  ylab("Calls") +
+  ggtitle("Top Ports by Total 2015 Calls") +
+  labs(color='Vessel Type') +
+  theme(plot.title = element_text(hjust = 0.5),legend.position="none")
+
+###by category
+p1 = ggplot(head(topdf[order(-topdf$tankers_calls),c("port","state","tankers_calls")],8), 
+            aes(reorder(port, tankers_calls), tankers_calls, fill = port)) +
+  coord_flip() +
+  geom_bar(stat = "identity") +
+  geom_text(aes(x=port, y=tankers_calls, label=tankers_calls, 
+                hjust=ifelse(sign(tankers_calls)>0, 1, 0)), 
+            position = position_dodge(width=1)) +
+  xlab("Port") +
+  ylab("Calls") +
+  ggtitle("Top Ports by 2015 Tanker Calls") +
+  labs(color='Vessel Type') +
+  theme(plot.title = element_text(hjust = 0.5),legend.position="none")
+
+p1
+
+p2 = ggplot(head(topdf[order(-topdf$containers_calls),c("port","state","containers_calls")],8), 
+            aes(reorder(port, containers_calls), containers_calls, fill = port)) +
+  coord_flip() +
+  geom_bar(stat = "identity") +
+  geom_text(aes(x=port, y=containers_calls, label=containers_calls, 
+                hjust=ifelse(sign(containers_calls)>0, 1, 0)), 
+            position = position_dodge(width=1)) +
+  xlab("Port") +
+  ylab("Calls") +
+  ggtitle("Top Ports by 2015 Container Calls") +
+  labs(color='Vessel Type') +
+  theme(plot.title = element_text(hjust = 0.5),legend.position="none")
+
+p2
+
+p3 = ggplot(head(topdf[order(-topdf$gas_calls),c("port","state","gas_calls")],8), 
+            aes(reorder(port, gas_calls), gas_calls, fill = port)) +
+  coord_flip() +
+  geom_bar(stat = "identity") +
+  geom_text(aes(x=port, y=gas_calls, label=gas_calls, 
+                hjust=ifelse(sign(gas_calls)>0, 1, 0)), 
+            position = position_dodge(width=1)) +
+  xlab("Port") +
+  ylab("Calls") +
+  ggtitle("Top Ports by 2015 LNG Carrier Calls") +
+  labs(color='Vessel Type') +
+  theme(plot.title = element_text(hjust = 0.5),legend.position="none")
+
+p3
 
 
+p4 = ggplot(head(topdf[order(-topdf$roro_calls),c("port","state","roro_calls")],8), 
+            aes(reorder(port, roro_calls), roro_calls, fill = port)) +
+  coord_flip() +
+  geom_bar(stat = "identity") +
+  geom_text(aes(x=port, y=roro_calls, label=roro_calls, 
+                hjust=ifelse(sign(roro_calls)>0, 1, 0)), 
+            position = position_dodge(width=1)) +
+  xlab("Port") +
+  ylab("Calls") +
+  ggtitle("Top Ports by 2015 RoRo Calls") +
+  labs(color='Vessel Type') +
+  theme(plot.title = element_text(hjust = 0.5),legend.position="none")
+
+p4
+
+p5 = ggplot(head(topdf[order(-topdf$bulk_calls),c("port","state","bulk_calls")],8), 
+            aes(reorder(port, bulk_calls), bulk_calls, fill = port)) +
+  coord_flip() +
+  geom_bar(stat = "identity") +
+  geom_text(aes(x=port, y=bulk_calls, label=bulk_calls, 
+                hjust=ifelse(sign(bulk_calls)>0, 1, 0)), 
+            position = position_dodge(width=1)) +
+  xlab("Port") +
+  ylab("Calls") +
+  ggtitle("Top Ports by 2015 Bulk Carrier Calls") +
+  labs(color='Vessel Type') +
+  theme(plot.title = element_text(hjust = 0.5),legend.position="none")
+
+p5
+
+p6 = ggplot(head(topdf[order(-topdf$general_calls),c("port","state","general_calls")],8), 
+            aes(reorder(port, general_calls), general_calls, fill = port)) +
+  coord_flip() +
+  geom_bar(stat = "identity") +
+  geom_text(aes(x=port, y=general_calls, label=general_calls, 
+                hjust=ifelse(sign(general_calls)>0, 1, 0)), 
+            position = position_dodge(width=1)) +
+  xlab("Port") +
+  ylab("Calls") +
+  ggtitle("Top Ports by 2015 General Carrier Calls") +
+  labs(color='Vessel Type') +
+  theme(plot.title = element_text(hjust = 0.5),legend.position="none")
+
+p6
+
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
 
 
+multiplot(p1, p2, p3, p4, p5, p6, cols=3)
+
+### by state
+
+topdf[is.na(topdf)] = 0
+state_df = do.call(data.frame, 
+                  aggregate(cbind(overall_calls,overall_capacity,tankers_calls,tankers_capacity,
+                            containers_calls,containers_dwt,gas_calls,gas_dwt,
+                            roro_calls,roro_dwt,bulk_calls,bulk_capacity,general_calls,general_dwt)~state,
+                  data = topdf, FUN = function(x) c(mn = mean(x), sm = sum(x)))) 
+state_df$aver_capacity = state_df$overall_capacity.sm/state_df$overall_calls.sm
+state_df[is.na(state_df)] = 0
+fit = kmeans(state_df[,c(2:length(state_df))],5)
+state_df$cluster = fit$cluster
+
+ggplot(state_df, aes(x= overall_calls.sm, y= overall_capacity.sm,
+                     label=state,colour = factor(cluster)))+
+  geom_point() +
+  geom_text(aes(label=state),hjust=0,vjust=0,
+            check_overlap = TRUE) +
+  scale_color_discrete() +
+  labs(x = "LSCI", y = "# Ships",colour = "Cluster") + ggtitle("Country LSCI Clusters") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+ggplot(state_df[state_df$cluster==state_df$cluster[state_df$state=="RI"]&state_df$state!="RI",], 
+       aes(x= overall_calls.sm, y= overall_capacity.sm,label=state))+
+  geom_point() +
+  geom_text(aes(label=state),hjust=0,vjust=0,check_overlap = TRUE) +
+  scale_color_discrete() +
+  geom_point(data=state_df[state_df$state=="RI",], colour="red") +  # this adds a red point
+  geom_text(data=state_df[state_df$state=="RI",], label="RI",hjust=1,vjust=0,check_overlap = TRUE) +
+  labs(x = "LSCI", y = "# Ships",colour = "Cluster") + ggtitle("Country LSCI Clusters") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+##MA is more like AK than any NE states
