@@ -8,7 +8,7 @@ library("lattice")
 ##see here: http://r-statistics.co/Time-Series-Analysis-With-R.html
 ##see here: https://github.com/ByronKKing/Time-Series-R/blob/master/Project1/project.r1.R
 
-setwd("~/Desktop/vessel_calls/vessel_calls_data/")
+setwd("~/whatcheer_posts/vessel_calls/vessel_calls_data/")
 #setwd("~/Downloads/vessel_calls/vessel_calls_data/")
 
 multiplot = function(..., plotlist=NULL, file, cols=1, layout=NULL) {
@@ -202,11 +202,12 @@ autoplot(forecast_hw) +
   xlab("Year") +
   ylab("Capacity") +
   ggtitle("Holt Winters Forecasts") +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks=seq(2002,2018))
 
 ###this is weird
-forecast_hw = predict(ts_hw, n.ahead = 3, prediction.interval = TRUE, level = 0.95)
-plot(forecast_hw, forecast)
+forecast_hw2 = predict(ts_hw, n.ahead = 3, prediction.interval = TRUE, level = 0.95)
+plot(forecast_hw2, forecast)
 
 ###conclusion: HW is bad!?
 p1 = autoplot(acf(forecast_hw$residuals[!is.na(forecast_hw$residuals)], lag.max=10),
@@ -291,25 +292,38 @@ mtext(side=1, "Centered Subtitle", outer=TRUE)
 
 ###print acf and pacf of the best model with the lowest AIC --this is where I left off
 best.model = arima(tsData[,1],order=c(2,4,2))
-par(mfrow=c(1, 2))
-acf(best.model$resid)
-pacf(best.model$resid)
 
-tsdisplay(residuals(best.model), lag.max=5, main='(1,1,1) Model Residuals')
+p1 = autoplot(acf(best.model$resid,plot = FALSE)) +
+  ggtitle("ARIMA(2,4,2) Residuals ACF") +
+  theme(plot.title = element_text(hjust = 0.5))
+p2 = autoplot(pacf(best.model$resid,plot = FALSE)) +
+  ggtitle("ARIMA(2,4,2) Residuals PACF") +
+  theme(plot.title = element_text(hjust = 0.5))
 
-fcast = forecast(best.model, h=10)
-plot(fcast)
+multiplot(p1,p2,cols=1)
+
+forecast_arima = forecast(best.model, h=3)
+autoplot(forecast_arima) +
+  xlab("Year") +
+  ylab("Capacity") +
+  ggtitle("Holt Winters Forecasts") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks=seq(2002,2018))
 
 
 ##NNETAR model
 ###see this: https://stats.stackexchange.com/questions/313927/time-series-prediction-neural-network-nnetar-vs-exponential-smoothing-ets/313934
 
 model.nn = nnetar(tsData[,1],p = 1)
-
-fcast = forecast(model.nn,h=5)
-plot(fcast)
+forecast_nn = forecast(model.nn,h=3)
+autoplot(forecast_nn) +
+  xlab("Year") +
+  ylab("Capacity") +
+  ggtitle("Neural Net Forecasts") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks=seq(2002,2018))
 
 ###compare these predictions by MSE!
-mean(((best.model$residuals)^2),na.rm = TRUE)
-mean(((model.nn$residuals)^2),na.rm = TRUE)
+paste("MSE for best ARIMA fit: ",mean(((best.model$residuals)^2),na.rm = TRUE))
+paste("MSE for best NN fit: ",mean(((model.nn$residuals)^2),na.rm = TRUE))
 
