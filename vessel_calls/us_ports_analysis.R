@@ -1,6 +1,7 @@
 library("readxl")
 library("reshape2")
 library("ggplot2")
+library("grid")
 
 setwd("~/whatcheer_posts/vessel_calls/vessel_calls_data/")
 #setwd("~/Downloads/vessel_calls/vessel_calls_data/")
@@ -180,7 +181,7 @@ ggplot(plotdf, aes(year, value, fill = variable)) +
   xlab("Year") +
   ylab("Calls") +
   ggtitle("US Vessel Calls by Vessel Type") +
-  labs(color='Vessel Type') +
+  labs(fill='Vessel Type') +
   theme(plot.title = element_text(hjust = 0.5))
 
 
@@ -188,7 +189,7 @@ ggplot(plotdf, aes(year, value, fill = variable)) +
 ## 2) look at top ports in each category and overall
 df[,colnames(df)[!(colnames(df) %in% c("port","state"))]] = 
   lapply(df[,colnames(df)[!(colnames(df) %in% c("port","state"))]],as.numeric)
-topdf = df[df$port!="Grand Total",]
+topdf = df[df$port!="Grand Total" & !(is.na(df$state)),]
 topdf = topdf[topdf$year==2015,]
 
 ###overall
@@ -371,7 +372,7 @@ ggplot(state_df[state_df$cluster==state_df$cluster[state_df$state=="RI"]&state_d
   scale_color_discrete() +
   geom_point(data=state_df[state_df$state=="RI",], colour="red") +  # this adds a red point
   geom_text(data=state_df[state_df$state=="RI",], label="RI",hjust=1,vjust=0,check_overlap = TRUE) +
-  labs(x = "Calls", y = "Total Capacity",colour = "Cluster") + ggtitle("Ports in RI Cluster") +
+  labs(x = "Calls", y = "Total Capacity",colour = "Cluster") + ggtitle("States in RI Cluster") +
   theme(plot.title = element_text(hjust = 0.5))
 
 ##MA is more like AK than any NE states by kmeans
@@ -404,8 +405,8 @@ for(i in 1:nrow(state_df)){
   
 }
 
-state_df$match[state_df$state=="RI"]
-state_df$match[state_df$state=="MA"]
+paste("The state closest to RI is: ",state_df$match[state_df$state=="RI"])
+paste("The state closest to MA is: ",state_df$match[state_df$state=="MA"])
 state_df[state_df$state %in% c("RI","MA","CT","ME","VT","NH"),c("state","match")]
 
 
@@ -429,6 +430,7 @@ ggplot(plotdf,aes(x=year,y=value,colour = port)) +
   scale_x_continuous(breaks=seq(2002,2015)) +
   xlab("Year") +
   ylab("Vessel Calls") +
+  labs(colour = "Port") +
   ggtitle("RI Ports: Total Vessel Calls") +
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -454,7 +456,7 @@ ggplot(plotdf, aes(year, value, fill = variable)) +
   theme(plot.title = element_text(hjust = 0.5))
 
 plotdf2 = aggregate(value ~ port + variable,data=plotdf, FUN = sum)
-ggplot(plotdf, aes(port, value, fill = variable)) +
+ggplot(plotdf2, aes(port, value, fill = variable)) +
   geom_bar(stat = "identity") +
   coord_flip() +
   xlab("Port") +
@@ -493,8 +495,6 @@ for(i in 1:nrow(port_df)){
   
   port_df$dist[i] = mindist
   
-  print(i)
-  
   gc()
   
 }
@@ -502,7 +502,10 @@ for(i in 1:nrow(port_df)){
 
 
 ## 7) which port is Davisville like, i.e. sister ports? -- 12/12 --done
-port_df$match[port_df$port=="Davisville"]
-port_df[port_df$state %in% c("RI","MA","CT","ME","VT","NH"),c("port","state","match","match_state")]
+paste("The port closest to Davisville is: ",port_df$match[port_df$port=="Davisville"])
+paste("The 'sister ports' for each Rhode Island port are below:")
 port_df[port_df$state %in% c("RI"),c("port","state","match","match_state")]
+paste("The 'sister ports' for each port in each New England state are below:")
+port_df[port_df$state %in% c("RI","MA","CT","ME","VT","NH"),c("port","state","match","match_state")]
+
 
