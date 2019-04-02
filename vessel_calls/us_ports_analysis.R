@@ -338,6 +338,12 @@ multiplot = function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 multiplot(p1, p2, p3, p4, p5, p6, cols=3)
 
+multiplot(p1, p2, cols=2)
+
+multiplot(p3, p4, cols=2)
+
+multiplot(p5, p6, cols=2)
+
 
 
 ## 3) by state
@@ -455,6 +461,7 @@ ggplot(plotdf, aes(year, value, fill = variable)) +
   labs(color='Vessel Type',fill = "Vessel Type") +
   theme(plot.title = element_text(hjust = 0.5))
 
+plotdf = meltdf[!(meltdf$variable %in% c("overall_capacity","overall_calls")),]
 plotdf2 = aggregate(value ~ port + variable,data=plotdf, FUN = sum)
 ggplot(plotdf2, aes(port, value, fill = variable)) +
   geom_bar(stat = "identity") +

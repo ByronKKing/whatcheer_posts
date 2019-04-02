@@ -5,6 +5,8 @@ library("TTR")
 library("forecast")
 library("lattice")
 
+set.seed(8)
+
 ##see here: http://r-statistics.co/Time-Series-Analysis-With-R.html
 ##see here: https://github.com/ByronKKing/Time-Series-R/blob/master/Project1/project.r1.R
 
@@ -114,11 +116,27 @@ df$capacity_call = df$capacity_dwt/df$calls
 
 tsData = ts(df[,c("calls","capacity_dwt","capacity_call")], start=c(2002), end=c(2015), frequency=1)
 
-autoplot(tsData[,2]) +
+p1 = autoplot(tsData[,1]) +
+  xlab("Year") +
+  ylab("Calls") +
+  ggtitle("Vessel Calls by Year") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+p2 = autoplot(tsData[,2]) +
   xlab("Year") +
   ylab("Capacity") +
   ggtitle("Vessel Capacity by Year") +
   theme(plot.title = element_text(hjust = 0.5))
+
+p3 = autoplot(tsData[,3]) +
+  xlab("Year") +
+  ylab("Capacity") +
+  ggtitle("Vessel Capacity by Year") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+multiplot(p1,p2,cols = 1)
+
+p3
 
 p1 = autoplot(acf(tsData[,1],plot = FALSE)) +
   ggtitle("Series ACF") +
@@ -184,7 +202,7 @@ p1 = autoplot(diff(tsData[,2],1)) +
   ggtitle("Series Differenced Once") +
   theme(plot.title = element_text(hjust = 0.5))
 
-p2 = autoplot(diff(tsData[,2],3)) +
+p2 = autoplot(diff(tsData[,2],2)) +
   xlab("Year") +
   ylab("Capacity") +
   ggtitle("Series Differenced Three Times") +
@@ -269,11 +287,12 @@ for(d in 0:max.d){
   AIC.matrix[[d+1]] = AIC.temp.matrix
 }
 
+
 findMin = function(matrix){
   matrixIndex = which(matrix == min(matrix), arr.ind = TRUE)
   minAIC = min(matrix)
   print(matrixIndex)
-  print(minAIC)
+  return(minAIC)
 }
 
 findMin(AIC.matrix[[1]])
@@ -281,6 +300,31 @@ findMin(AIC.matrix[[2]])
 findMin(AIC.matrix[[3]])
 findMin(AIC.matrix[[4]])
 
+
+findLowestAIC = function(matrixList){
+  
+  bestParameters = c(0,0,0)
+  lowestAIC = 10^10
+  
+  for(i in 1:length(matrixList)){
+    
+    if(min(matrixList[[i]])<lowestAIC){
+      
+      lowestAIC = min(matrixList[[i]])
+      matrixIndex = which(matrixList[[i]] == min(matrixList[[i]]), arr.ind = TRUE)
+      bestParameters[1]=matrixIndex[1];bestParameters[2]=i;bestParameters[3]=matrixIndex[2];
+      
+    }
+  }
+  
+  return(bestParameters)
+  
+}
+
+matrixList = list(AIC.matrix[[1]],AIC.matrix[[2]],AIC.matrix[[3]],AIC.matrix[[4]])
+findLowestAIC(matrixList)
+
+dev.off()
 plot.new()
 par(mfrow=c(2,2), oma=c(2,0,2,0))
 print(levelplot(AIC.matrix[[1]],main="0 Differenced"), split=c(1, 1, 2, 2)) 
@@ -290,14 +334,17 @@ print(levelplot(AIC.matrix[[4]],main="3 Differenced"), split=c(2, 2, 2, 2), newp
 title("Centered Overall Title", outer=TRUE)
 mtext(side=1, "Centered Subtitle", outer=TRUE)
 
+min(findMin(AIC.matrix[[1]]))
+
 ###print acf and pacf of the best model with the lowest AIC --this is where I left off
-best.model = arima(tsData[,1],order=c(2,4,2))
+model.params = findLowestAIC(matrixList)
+best.model = arima(tsData[,2],order=c(model.params[1],model.params[2],model.params[3]))
 
 p1 = autoplot(acf(best.model$resid,plot = FALSE)) +
-  ggtitle("ARIMA(2,4,2) Residuals ACF") +
+  ggtitle("Best ARIMA Model Residuals ACF") +
   theme(plot.title = element_text(hjust = 0.5))
 p2 = autoplot(pacf(best.model$resid,plot = FALSE)) +
-  ggtitle("ARIMA(2,4,2) Residuals PACF") +
+  ggtitle("Best ARIMA Model Residuals PACF") +
   theme(plot.title = element_text(hjust = 0.5))
 
 multiplot(p1,p2,cols=1)
@@ -306,15 +353,15 @@ forecast_arima = forecast(best.model, h=3)
 autoplot(forecast_arima) +
   xlab("Year") +
   ylab("Capacity") +
-  ggtitle("Holt Winters Forecasts") +
+  ggtitle("ARIMA Model Forecast") +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_continuous(breaks=seq(2002,2018))
 
 
 ##NNETAR model
-###see this: https://stats.stackexchange.com/questions/313927/time-series-prediction-neural-network-nnetar-vs-exponential-smoothing-ets/313934
+##see this: https://stats.stackexchange.com/questions/313927/time-series-prediction-neural-network-nnetar-vs-exponential-smoothing-ets/313934
 
-model.nn = nnetar(tsData[,1],p = 1)
+model.nn = nnetar(tsData[,2],p = 1)
 forecast_nn = forecast(model.nn,h=3)
 autoplot(forecast_nn) +
   xlab("Year") +
@@ -324,6 +371,15 @@ autoplot(forecast_nn) +
   scale_x_continuous(breaks=seq(2002,2018))
 
 ###compare these predictions by MSE!
+
+paste("The MSE is lowest for the",
+      ifelse(mean(((best.model$residuals)^2),na.rm = TRUE)<mean(((model.nn$residuals)^2),na.rm = TRUE),
+      "ARIMA","Neural Net"),"model",sep = " ")
+
 paste("MSE for best ARIMA fit: ",mean(((best.model$residuals)^2),na.rm = TRUE))
 paste("MSE for best NN fit: ",mean(((model.nn$residuals)^2),na.rm = TRUE))
 
+
+###LATEX equations for post
+$$Y_t = T_t + S_t + ϵ_t$$
+$$F_t = F_{t-1} + \alpha(A_{t-1} - F_{t-1})$$
