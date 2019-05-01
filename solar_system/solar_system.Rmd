@@ -1,0 +1,307 @@
+---
+title: "2312 and a View of the Solar System"
+date: '2019-03-31'
+draft: no
+tags:
+- solar system
+- astronomy
+- sci-fi
+categories:
+- Space
+- Book Review
+---
+  
+```{r setup, include=FALSE}
+library("reticulate")
+library("ggplot2")
+library("DT")
+
+set.seed(8) 
+
+bbc_style_new <- function(x_axis_title,y_axis_title) {
+  font <- "Helvetica"
+  
+  ggplot2::theme(
+    
+    #Text format:
+    #This sets the font, size, type and colour of text for the chart's title
+    plot.title = ggplot2::element_text(family=font,
+                                       size=20,
+                                       face="bold",
+                                       color="#222222",
+                                       hjust=.5),
+    #This sets the font, size, type and colour of text for the chart's subtitle, as well as setting a margin between the title and the subtitle
+    plot.subtitle = ggplot2::element_text(family=font,
+                                          size=15,
+                                          margin=ggplot2::margin(9,0,9,0),
+                                          hjust=.5),
+    plot.caption = ggplot2::element_blank(),
+    #This leaves the caption text element empty, because it is set elsewhere in the finalise plot function
+    
+    #Legend format
+    #This sets the position and alignment of the legend, removes a title and backround for it and sets the requirements for any text within the legend. The legend may often need some more manual tweaking when it comes to its exact position based on the plot coordinates.
+    legend.position = "top",
+    legend.text.align = 0,
+    legend.background = ggplot2::element_blank(),
+    legend.title = ggplot2::element_blank(),
+    legend.key = ggplot2::element_blank(),
+    legend.text = ggplot2::element_text(family=font,
+                                        size=10,
+                                        color="#222222"),
+    
+    #Axis format
+    #This sets the text font, size and colour for the axis test, as well as setting the margins and removes lines and ticks. In some cases, axis lines and axis ticks are things we would want to have in the chart - the cookbook shows examples of how to do so.
+    # axis.title.x = x_axis_title,
+    # axis.title.y = y_axis_title,
+    axis.title = ggplot2::element_text(family=font,
+                                       size=18,
+                                       color="#222222"),
+    axis.text = ggplot2::element_text(family=font,
+                                      size=18,
+                                      color="#222222"),
+    axis.text.x = ggplot2::element_text(margin=ggplot2::margin(5, b = 10)),
+    axis.ticks = ggplot2::element_blank(),
+    axis.line = ggplot2::element_blank(),
+    
+    #Grid lines
+    #This removes all minor gridlines and adds major y gridlines. In many cases you will want to change this to remove y gridlines and add x gridlines. The cookbook shows you examples for doing so
+    panel.grid.minor = ggplot2::element_blank(),
+    panel.grid.major.y = ggplot2::element_line(color="#cbcbcb"),
+    panel.grid.major.x = ggplot2::element_blank(),
+    
+    #Blank background
+    #This sets the panel background as blank, removing the standard grey ggplot background colour from the plot
+    panel.background = ggplot2::element_blank(),
+    
+    #Strip background (#This sets the panel background for facet-wrapped plots to white, removing the standard grey ggplot background colour and sets the title size of the facet-wrap title to font size 22)
+    strip.background = ggplot2::element_rect(fill="white"),
+    strip.text = ggplot2::element_text(size  = 22,  hjust = 0)
+  )
+}
+
+knitr::opts_knit$set(root.dir = "~/")
+
+use_python("/usr/local/opt/python/libexec/bin/python/",required = TRUE)
+```
+
+## 2312
+
+I just finished the sci-fi novel *[2312](https://en.wikipedia.org/wiki/2312_(novel))* by Stanley Kim Robinson. Like most novels over 500 pages, I thought it could be shorter. However, I enjoyed Robinson's ambitious vision of the future and the care he took in creating his story's world. What makes the story ambitious is that he developed not a single world but several *worlds*. 
+
+The story centers around the events of year *2312*. In the past 200 or so years humans colonized the solar system. There are human settlements on all the [terrestrial planets](https://en.wikipedia.org/wiki/Terrestrial_planet) as well as mid-size moons on Jupiter and Saturn such as Io and Titan. Humans were forced from their native Earth due to calamitous environment conditions. This plot device is a well-worn sci-fi trope. However, what Robinson adds to the genre is a carefully crafted inter-planetary society with intricate social, economic, and political relations.
+
+Earth of course is seen by those who colonized space (*"spacers"*) as the center of pestilence in the solar system, with widespread poverty and inequality. There is still a market economy on Earth, whereas the nations that are part of an interplanetary organization called the Mondragon benefit from a planned economy that guarantees the essentials necessary to exist in space. Earth, however, is still the center of political and financial power in the solar system, so each space settlement must maintain political relations with the planet. The exception is Mars, which earned a degree of freedom after staging the first inter-planet revolution for independence.
+
+Essential to the colonization of the solar system are *qubes*. These are quantum computers that are able to perform enormous computational tasks such as planning the space economy. Ownership of these computers are a source of power in the solar system, and perpetuate a kind of computational arms race between the major solar system powers. 
+
+There are a host of other technological advances that allow for humans to thrive in space such as *[terraforming](https://en.wikipedia.org/wiki/Terraforming)* and biotechnology that enables long human lifespans. However, I found the economic and political relationships between the planets the most interesting part of the novel. Some settlements relied on exporting nitrogen to other planets, while others like Mercury relied on supplying sunlight to settlements near the outer reaches of the solar system. 
+
+The book mentions many astrological bodies in our solar system, and I repeatedly consulted Wikipedia to check where these bodies are located and how big they are. [This Wikipedia page in particular](https://en.wikipedia.org/wiki/List_of_Solar_System_objects_by_size) was a great source of information. I had the idea to scrape information from this site using Python, and analyze the data using R. Below, I create graphs to compare the physical properties of the main bodies in the solar system. I then see how well **kmeans clustering** performs in grouping these celestial objects together.
+
+## Our Solar System
+
+I scrape the first table on the webpage under the heading  **List of objects by radius** and the subheading **Larger than 400 km**. This table includes multiple measures of the radius, volume, mass and gravity of different astronomical objects, as well as their shape, type and density. Below is the Python code to scrape the information and build the dataset:
+
+```{python, eval = FALSE}
+from requests import get
+from bs4 import BeautifulSoup
+import json
+import numpy as np
+import xlsxwriter
+
+#scrape table
+url = 'https://en.wikipedia.org/wiki/List_of_Solar_System_objects_by_size'
+response = get(url)
+html_soup = BeautifulSoup(response.text, 'html.parser')
+
+entire_table = html_soup.find("table",{"class":"wikitable sortable"})
+all_rows = entire_table.find("tbody").find_all("tr")
+
+#loop to create dataframe
+table_columns = ['body','image','radius_km','radius_r','volume_km',
+'volume_v','mass_kg','mass_m','density','gravity_ms',
+'gravity_g','type','shape','number']
+
+jsonList = []
+for row in all_rows[2:len(all_rows)-2]:
+    rowList = []
+    for cell in row.find_all('td'):
+        rowList.append(cell.text)
+    currJson = dict(zip(table_columns,rowList))
+    jsonList.append(currJson)
+
+full_df = pd.DataFrame(jsonList)
+
+#process dataframe
+df = full_df
+
+##strip whitespace and paragraph characters, remove commas
+df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+df = df.apply(lambda x: x.str.strip('\n\t') if x.dtype == "object" else x)
+df[list(df.columns)] = df[list(df.columns)].replace({',': ''}, regex=True)
+
+##process radius_km with regex
+df.radius_km = df.radius_km.apply(lambda x: x.split("♠")[1])
+
+def regex_func(x):
+    x = re.sub("[\(\[].*?[\)\]]", "", x)
+    return(x)
+
+df.radius_km = df.radius_km.map(regex_func)
+df = df.apply(lambda x: x.map(regex_func) if x.dtype == "object" else x)
+
+```
+
+I then clean up the data using R and build plots. Since including all of the code in the post makes it very long, I'll include only the code to build the scraper and leave out the R code. However, you can find all of the code [here](https://github.com/ByronKKing/whatcheer_posts/tree/master/solar_system).
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+load(file = "~/whatcheer_posts/solar_system/kmeans_fit.Rda")
+ogdf = read.csv("~/whatcheer_posts/solar_system/processed_data.csv")
+
+df = ogdf
+
+df$mass_kg = as.numeric(as.character(df$mass_kg))
+
+df$density = as.character(df$density)
+df$density = sapply(strsplit(as.character(df$density),'±'), "[", 1)
+df$density = as.numeric(df$density)
+
+df = df[,colnames(df)[!(colnames(df) %in% c("number","image"))]]
+df = df[complete.cases(df),]
+
+df$type = as.character(df$type)
+df$type = gsub("\n","",df$type)
+
+df$type[grepl("dwarf",df$type)] = "dwarf planet"
+df$type[grepl("moon",df$type)] = "moon"
+df$type[grepl("ice giant",df$type)] = "planet - ice giant"
+df$type[grepl("gas giant",df$type)] = "planet - gas giant"
+df$type[grepl("terrestrial",df$type)] = "planet - terrestrial"
+
+df$has_rings = ifelse(grepl("giant",df$type),"yes","no")
+
+```
+
+We begin with a look at average metrics for each type of astronomical object:
+
+```{r}
+summ_df = aggregate(cbind(gravity_g,mass_m,radius_r,volume_v,density)~type,df,mean)
+
+summ_df[,2:length(summ_df)] = lapply(summ_df[,2:length(summ_df)],function(x) round(x,3))
+
+datatable(
+  summ_df
+  ,options = list(dom = 't'),
+  rownames = FALSE
+) %>%
+  DT::formatStyle(columns = c(1, 2, 3, 4, 5, 6), fontSize = '9pt')
+```
+
+We can make a few easy inferences. By far the most massive object type is "star". The sun is a mind-boggling 333,000 times as massive as the Earth, has a radius that is about 109 times as wide as the Earth's and has a force of gravity that is nearly 28 times the Earth's gravity. The gas and ice giants are also astoundingly large in terms of mass and size compared to Earth. However, the four terrestrial planets constitute the densest objects in the solar system. Together, their average density is five times that of the gas giants.
+
+The following plot illustrates how massive the objects in our solar system are:
+
+```{r}
+ggplot(df[grepl("planet -",df$type),], 
+       aes(x = reorder(body, mass_m), y = mass_m, fill = type)) +
+  geom_bar(stat="identity", 
+           position="identity") +
+  geom_hline(yintercept = 0, size = 1, colour="#333333") +
+  coord_flip() +
+  bbc_style_new() +
+  xlab("Planet") + ylab("Mass (Standardized Earth Mass)") +
+  labs(title="All Planets by Mass") + 
+  scale_fill_brewer(palette = "Dark2") 
+```
+
+Together the gas giants Jupiter and Saturn are about 206 times as massive as the Earth, while the ice giants Neptune and Uranus are about 15 times as massive. However, this plot shows just how much larger Jupiter is than the rest of the planets of our solar system. We can barely make out the masses of the four terrestrial planets when compared to the four giants. Below, we compare masses of the four terrestrial planets to the six most massive moons in the solar system:
+
+```{r}
+ggplot(
+  rbind(df[grepl("terrestrial",df$type),],
+        head(df[grepl("moon",df$type),],6)), 
+  aes(x = reorder(body, mass_m), y = mass_m, fill = type)) +
+  geom_bar(stat="identity", 
+           position="identity") +
+  geom_hline(yintercept = 0, size = 1, colour="#333333") +
+  coord_flip() +
+  bbc_style_new() +
+  xlab("Body") + ylab("Mass (Standardized Earth Mass)") +
+  labs(title="Smallest Planets and Biggest Moons") +
+  scale_fill_manual(values=c("#990000", "#1380A1"))
+```
+
+Of course, these bodies are where most of the action in *2312* takes place. Venus and Mars were terraformed successfully, while the main character Swan lives on Mercury in a city called Terminator which moves on tracks to constantly stay out of the sun. Mercury's proximity to the sun prevents it from being terraformed. The other main character Wahram lives on a settlement on Titan, and there are is also a human settlement on Io.
+
+```{r}
+ggplot(df[grepl("moon",df$type),], 
+       aes(x = reorder(body, mass_m), y = mass_m)) +
+  geom_bar(stat="identity", 
+           position="identity", 
+           fill="#990000") +
+  geom_hline(yintercept = 0, size = 1, colour="#333333") +
+  coord_flip() +
+  bbc_style_new() +
+  xlab("Body") + ylab("Mass (Standardized Earth Mass)") +
+  labs(title="Moons by Mass")
+```
+
+So far we've only looked at mass. Below we plot each object's gravity on the x-axis and each object's density on the y-axis. The size of each dot is proportional to each object's mass and the color of each dot is the object type. 
+
+```{r}
+ggplot(rbind(df[grepl("planet",df$type),],head(df[grepl("moon",df$type),],6)),  
+       aes(x = gravity_g, y = density, label = body, colour = factor(type))) +
+  geom_point(aes(size=mass_m)) +
+  bbc_style_new() +
+  xlab("Gravity (Standard Gravity)") + ylab("Density (g per cubic centimeter)") +
+  geom_text(aes(label=body),hjust=-0.2,vjust=0.5,
+            check_overlap = TRUE) +
+  theme(legend.position = "top", 
+        legend.justification = "top",
+        axis.text=element_text(size=10,face = "bold")) +
+  labs(title="Planets and 6 Most Massive Moons",
+       subtitle = "Larger Bubbles Constitute Greater Earth Mass ")
+```
+
+We see that there appear to be natural groups that emerge when plotted this way. The terrestrial planets cluster in the upper left quadrant, the dwarf planets cluster in the lower left quadrant and the giant planets settle towards the lower center of the graph. 
+
+While we can tease out these relationships graphically, this dataset lends itself well to cluster analysis. Using the five metrics I display in the first table above, I use kmeans to cluster all of the 28 bodies for which we have all data. Kmeans is a quantitative approach to teasing out the relationships between the bodies that we see visually in the graph. If we are able to identify the type of astronomical body simply by these metrics, we will see perfect separation into the 5 object types. However, the kmeans clustering yields imperfect—albeit interesting—results. I manually name the new clusters that kmeans yields based on the majority of the objects in each cluster. Here is the breakdown by the cluster type:
+
+```{r}
+scaled_df = df[,c("body","type","gravity_g","mass_m","radius_r","volume_v","density")]
+scaled_df[,3:length(scaled_df)] = lapply(scaled_df[,3:length(scaled_df)],scale)
+scaled_df$cluster = fit$cluster
+scaled_df$cluster = as.character(scaled_df$cluster)
+scaled_df$cluster_type = ""
+scaled_df$cluster_type[scaled_df$cluster==1] = "mid-sized moons" #mars
+scaled_df$cluster_type[scaled_df$cluster==2] = "small moons" #uranus
+scaled_df$cluster_type[scaled_df$cluster==3] = "gas giants"
+scaled_df$cluster_type[scaled_df$cluster==4] = "big moons/dwarf planets" #neptune
+scaled_df$cluster_type[scaled_df$cluster==5] = "terrestrial planets"
+scaled_df$cluster_type[scaled_df$cluster==6] = "star"
+print(table(scaled_df$type,scaled_df$cluster_type))
+```
+
+
+Here is the full list of each body by their type and the cluster's type:
+
+```{r}
+datatable(
+  scaled_df[,c("body","type","cluster_type")]
+  ,#options = list(dom = 't'),
+  rownames = FALSE
+  ) %>%
+  DT::formatStyle(columns = c(1, 2, 3), fontSize = '9pt')
+```
+
+
+There are two groups that kmeans identifies without a problem. The sun is so different from the other objects that kmeans isolates it easily. The same goes for the two gas giants. Out of the terrestrial planets, we are able to group Mercury, Venus and Earth. However, as the graph hinted above, kmeans groups Mars with the mid-sized moons Io, Europa and our very own *Luna*. This is not so strange given that Mars is actually much less dense than the other terrestrial planets. In fact, it's density is closer to Io's than it is to any of three other terrestrial planets.
+
+The biggest blunder that kmeans commits is its inability to properly classify the ice giants. Though on the graph they appear to be closer to the gas giants in terms of mass and density, kmeans groups Uranus with the small moons and Neptune with the big moons and dwarf planets. While the algorithm identifies their mass and volume as distinguishing features for the ice giants, the two planets' density and gravity are different enough that kmeans cannot make the leap of grouping them together. However, the algorithm does a good job in grouping all of the dwarf planets together. Its decision to group together dwarf planets and big moons is not so offbase either: the big moons and dwarf planets share very similar masses and volumes.
+
+Despite its misclassification of the ice giants, the algorithm reveals interesting commonalities between the bodies in our solar system. For instance, in *2312* Mars is a completely terraformed planet but Mercury is not. Kmeans grouped Mars with mid-sized moons like Io, Europa and the moon. This is fitting because in the story Robinson actually alludes to discussions in the solar system over whether or not terraforming should commence on these three moons. Perhaps the algorithm picked up on these lunar objects' shared potential for terraforming which eluded us, but was perhaps evident to Robinson when writing his story.
+
+
+
+
