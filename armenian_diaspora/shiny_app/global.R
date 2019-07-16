@@ -20,9 +20,14 @@ num_chars = c("lower_estimate","upper_estimate","estimate_1","estimate_2","lat",
 df[,num_chars] = lapply(df[,num_chars],function(x) gsub(",","",x))
 df[,num_chars] = lapply(df[,num_chars],function(x) as.numeric(x))
 
+df = df[,colnames(df)[!(colnames(df) %in% c("estimations","largest_community"))]]
 
 ####To-Do
 
-#add data table
 #fix data popup label
 #fix data circle size
+#fix lats and lons in data
+#filter plotted circles by country? maybe zoom in on continent?
+
+
+

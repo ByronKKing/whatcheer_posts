@@ -14,21 +14,22 @@ size_vars = c(
   "Alternative Estimate 2" = "estimate_2"
 )
 
+choices_area = unique(df$area)
+choices_city_region = unique(df$city_or_region)
+choices_country = unique(df$country)
+
 navbarPage(h5(strong("Armenians in Diaspora")), id="nav",
            
            tabPanel(h5("Diaspora Map"),
                     div(class="outer",
                         
                         tags$head(
-                          # Include our custom CSS
                           includeCSS("styles.css"),
                           includeScript("gomap.js")
                         ),
                         
-                        # If not using custom CSS, set height of leafletOutput to a number instead of percent
                         leafletOutput("map", width="100%", height="100%"),
                         
-                        # Shiny versions prior to 0.11 should use class = "modal" instead.
                         absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                       draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
                                       width = 330, height = "auto",
@@ -37,49 +38,36 @@ navbarPage(h5(strong("Armenians in Diaspora")), id="nav",
                                       
                                       selectInput("color", h5("Color"), color_vars, selected = "country"),
                                       selectInput("size", "Size", size_vars, selected = "official_data"),
-                                      ###enter new input for year based on official estimate selection
-                                      conditionalPanel("input.color == 'optimal_location' || input.size == 'optimal_location'",
-                                                       # Only prompt for threshold when coloring or sizing by superzip
-                                                       numericInput("threshold", h5("Optimal Location Threshold (top n percentile)"), 5)
-                                      ),
                                       
                                       plotOutput("histCentile", height = 200),
-                                      plotOutput("scatterCollegeIncome", height = 250)
+                                      plotOutput("scatterPopulation", height = 250)
+                        ),
+
+                        tags$div(id="cite",
+                                 'Data compiled from Wikipedia: ', tags$em('Largest Armenian Diaspora Communities.'), 'See here: https://en.wikipedia.org/wiki/Largest_Armenian_diaspora_communities'
                         )
-                        # ,
-                        # 
-                        # tags$div(id="cite",
-                        #          'Data compiled for ', tags$em('Coming Apart: The State of White America, 1960–2010'), ' by Charles Murray (Crown Forum, 2012).'
-                        # )
                     )
            ),
            
-           # tabPanel(h5("Explore the Data"),
-           #          fluidRow(
-           #            column(3,
-           #                   selectInput("states", "States", c("All states"="", structure(state.abb, names=state.name), "Washington, DC"="DC"), multiple=TRUE)
-           #            ),
-           #            column(3,
-           #                   conditionalPanel("input.states",
-           #                                    selectInput("cities", "Cities", c("All cities"=""), multiple=TRUE)
-           #                   )
-           #            ),
-           #            column(3,
-           #                   conditionalPanel("input.states",
-           #                                    selectInput("zipcodes", "Zipcodes", c("All zipcodes"=""), multiple=TRUE)
-           #                   )
-           #            )
-           #          ),
-           #          fluidRow(
-           #            column(1,
-           #                   numericInput("minScore", "Min score", min=0, max=100, value=0)
-           #            ),
-           #            column(1,
-           #                   numericInput("maxScore", "Max score", min=0, max=100, value=100)
-           #            )
-           #          ),
-           #          hr(),
-           #          DT::dataTableOutput("ziptable")
-           # ),
+           tabPanel(h5("Explore the Data"),
+                    fluidRow(
+                      column(3,
+                             selectInput("country", "Country", choices_country, multiple=TRUE)
+                      ),
+                      column(3,
+                             conditionalPanel("input.country",
+                                              selectInput("area", "Community", choices_area, multiple=TRUE)
+                             )
+                      ),
+                      column(3,
+                             conditionalPanel("input.country",
+                                              selectInput("city_or_region", "City or Region", choices_city_region, multiple=TRUE)
+                             )
+                      )
+                    ),
+                    hr(),
+                    DT::dataTableOutput("fulltable")
+           ),
+           
            conditionalPanel("false", icon("crosshair"))
 )
