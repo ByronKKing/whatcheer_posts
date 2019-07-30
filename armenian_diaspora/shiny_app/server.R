@@ -155,6 +155,25 @@ function(input, output, session) {
       map %>% fitBounds(lng - dist, lat - dist, lng + dist, lat + dist)
     })
   })
+  
+  ##go to continent
+  observe({
+    if (input$continent_choice == ""){
+      return()
+    }else{
+      df = df[df$continent == input$continent_choice,]
+      new_lng = mean(df$lon)
+      new_lat = mean(df$lat)    
+    }
+    
+    isolate({
+      map = leafletProxy("map")
+      lat = new_lat
+      lng = new_lng
+      map %>% 
+        setView(lng = new_lng, lat = new_lat, zoom = 4)
+    })
+  })
 
   ##table object
   output$fulltable = DT::renderDataTable({

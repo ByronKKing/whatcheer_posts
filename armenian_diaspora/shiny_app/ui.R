@@ -17,6 +17,7 @@ size_vars = c(
 choices_area = unique(df$area)
 choices_city_region = unique(df$city_or_region)
 choices_country = unique(df$country)
+choices_continent = c(unique(df$continent),"")
 
 navbarPage(h5(strong("Armenians in Diaspora")), id="nav",
            
@@ -36,8 +37,9 @@ navbarPage(h5(strong("Armenians in Diaspora")), id="nav",
                                       
                                       h2("Location Explorer"),
                                       
-                                      selectInput("color", h5("Color"), color_vars, selected = "country"),
+                                      selectInput("color", h5("Color"), color_vars, selected = "continent"),
                                       selectInput("size", h5("Size"), size_vars, selected = "official_data"),
+                                      selectInput("continent_choice", h5("Continent Zoom"), choices_continent, selected = "", multiple = FALSE),
                                       
                                       plotOutput("histCentile", height = 200),
                                       plotOutput("scatterPopulation", height = 250)

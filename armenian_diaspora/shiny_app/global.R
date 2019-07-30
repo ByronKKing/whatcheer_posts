@@ -10,6 +10,8 @@ df = ogdf
 df$continent = countrycode(sourcevar = df[, "country"],
                             origin = "country.name",
                             destination = "continent")
+df$continent[df$country %in% c("United States","Canada")] = "North America"
+df$continent[df$country %in% c("Uruguay","Argentina","Brazil")] = "South America"
 
 ##remove dups
 df = df[!(duplicated(df)),]
