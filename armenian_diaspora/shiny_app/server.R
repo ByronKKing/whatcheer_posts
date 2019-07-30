@@ -74,7 +74,9 @@ function(input, output, session) {
     colorData = df[[colorBy]]
     pal = colorFactor("viridis", colorData)
     
-    radius = df[[sizeBy]] / max(df[[sizeBy]],na.rm = TRUE) * 500000
+    radius = ifelse(df[[sizeBy]] / max(df[[sizeBy]],na.rm = TRUE) * 500000 > 5e+05, 350000,
+                    ifelse(df[[sizeBy]] / max(df[[sizeBy]],na.rm = TRUE) * 500000 < 35000,50000,
+                           df[[sizeBy]] / max(df[[sizeBy]],na.rm = TRUE) * 500000))
     
     leafletProxy("map", data = df) %>%
       clearShapes() %>%
@@ -88,14 +90,10 @@ function(input, output, session) {
   showZipcodePopup = function(area, lat, lng) {
     selectedZip = df[df$area == area,]
     content = as.character(tagList(
-      tags$h4("Selected Population Estimate:", as.integer(selectedZip$upper_estimate)),
-      tags$strong(HTML(sprintf("%s, %s %s",
-                               selectedZip$area, selectedZip$region, selectedZip$country
-      ))), tags$br()
-      # ,
-      # sprintf("Median Household Income: %s", dollar(selectedZip$income * 1000)), tags$br(),
-      # sprintf("Competition Proximity Score: %s%%", as.integer(selectedZip$competition_proximity_score)), tags$br(),
-      # sprintf("Adult Population: %s", selectedZip$adultpop)
+      tags$h4(tags$strong(HTML(paste(selectedZip$area, selectedZip$country,sep = ", ")))),
+      ifelse(is.na(selectedZip$upper_estimate),"",sprintf("Upper Estimate: %s", prettyNum(selectedZip$upper_estimate, big.mark=",", scientific = FALSE))), tags$br(),
+      ifelse(is.na(selectedZip$lower_estimate),"",sprintf("Lower Estimate: %s", prettyNum(selectedZip$lower_estimate, big.mark=",", scientific = FALSE))), tags$br(),
+      ifelse(is.na(selectedZip$official_data),"",sprintf("Official Data: %s", prettyNum(selectedZip$official_data, big.mark=",", scientific = FALSE))), tags$br()
     ))
     leafletProxy("map") %>% addPopups(lng, lat, content, layerId = area)
   }

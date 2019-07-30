@@ -2,7 +2,7 @@ library("leaflet")
 
 # Choices for drop-downs
 color_vars = c(
-  "Country" = "country",
+  "Continent" = "continent",
   "City or Region" = "city_or_region"
 )
 
@@ -37,7 +37,7 @@ navbarPage(h5(strong("Armenians in Diaspora")), id="nav",
                                       h2("Location Explorer"),
                                       
                                       selectInput("color", h5("Color"), color_vars, selected = "country"),
-                                      selectInput("size", "Size", size_vars, selected = "official_data"),
+                                      selectInput("size", h5("Size"), size_vars, selected = "official_data"),
                                       
                                       plotOutput("histCentile", height = 200),
                                       plotOutput("scatterPopulation", height = 250)

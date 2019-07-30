@@ -1,15 +1,15 @@
 library("xlsx")
 library("dplyr")
+library("countrycode")
 
 ogdf = read.xlsx("data/processed_data.xlsx", sheetName = "Sheet 1", stringsAsFactors = FALSE)
 
 df = ogdf
 
-##one-offs
-df$lat[df$area=="Fresno County"] = 36.746841
-df$lon[df$area=="Fresno County"] = -119.772591
-
-df$upper_estimate[df$area=="Stavropol region"] = "250,000"
+##retrieve continent
+df$continent = countrycode(sourcevar = df[, "country"],
+                            origin = "country.name",
+                            destination = "continent")
 
 ##remove dups
 df = df[!(duplicated(df)),]
@@ -24,10 +24,7 @@ df = df[,colnames(df)[!(colnames(df) %in% c("estimations","largest_community"))]
 
 ####To-Do
 
-#fix data popup label
-#fix data circle size
-#fix lats and lons in data
-#filter plotted circles by country? maybe zoom in on continent?
+#final button that zooms to a particular continent (average of geocoordinates in content with zoom = 4)
 
 
 
