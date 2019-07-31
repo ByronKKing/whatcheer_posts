@@ -24,9 +24,3 @@ df[,num_chars] = lapply(df[,num_chars],function(x) as.numeric(x))
 
 df = df[,colnames(df)[!(colnames(df) %in% c("estimations","largest_community"))]]
 
-####To-Do
-
-#final button that zooms to a particular continent (average of geocoordinates in content with zoom = 4)
-
-
-
