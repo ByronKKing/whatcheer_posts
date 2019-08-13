@@ -1,6 +1,8 @@
 library("readxl")
 library("plotly")
 
+source("~/whatcheer_posts/bbc_style_function.R")
+
 file_path = "~/whatcheer_posts/poverty_urbanity/world_bank_data.xlsx"
 
 ## Prepare dataframes from each worksheet
@@ -56,10 +58,16 @@ final = final[complete.cases(final),]
 final$income_type = ifelse(final$gdp_per_capita>=19948.9228,"High Income",
                            ifelse(final$gdp_per_capita<=2907.3176,"Low Income","Middle Income"))
 
-## Correlations
+## Correlations and Regression
 
 cor(final$urban_pop,final$poverty_rate)
 cor(final$urban_pop,final$gdp_per_capita)
+
+reg = lm(poverty_rate ~ urban_pop + total_population + gdp_per_capita,data = final)
+summary(reg)
+
+reg = lm(poverty_rate ~ urban_pop, data = final)
+summary(reg)
 
 ## Create Plot using Plotly
 
@@ -69,7 +77,7 @@ final$size[final$`Country Code`=="CHN"] = final$size[final$`Country Code`=="CHN"
 plot_ly(final, 
         x = ~urban_pop, y = ~poverty_rate, text = ~`Country Name`, 
         type = 'scatter', mode = 'markers', color = ~income_type, size = ~size,
-        marker = list(sizeref=0.2, sizemode="area")
+        marker = list(sizeref=0.1, sizemode="area")
         ) %>%
   # add_lines(y = ~fitted(loess(poverty_rate ~ urban_pop)),color = ~income_type,
   #           line = list(color = '#07A4B5',width = 3),
@@ -80,13 +88,26 @@ plot_ly(final,
 
 ## Create Plot Using GGplotly
 
-ggp = ggplot(final,aes(x = urban_pop,y = poverty_rate,color = income_type)) +
-  geom_point(aes(size = total_population)) + 
-  stat_smooth(method = "loess", formula = "poverty_rate ~ urban_pop", data = final, size = 1)
+final$poverty_rate_pred = predict(reg,data = final)
+final$poverty_rate_pred[final$poverty_rate_pred<0] = 0
 
-ggplotly(ggp)
+ggp = ggplot(final,aes(x = urban_pop,y = poverty_rate,color = income_type,text = `Country Name`, group = 1)) +
+  geom_point(aes(size = total_population), alpha = 0.5) + 
+  geom_line(color='red', aes(y = poverty_rate_pred), size=1, alpha=0.4) +
+  scale_size(range = c(1,14)) +
+  scale_color_brewer(palette="Dark2") +
+  bbc_style_new() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    legend.position = "top", 
+    legend.justification = "top",
+    axis.text=element_text(size=10,face = "bold")) +
+  labs(title="Urbanization and Poverty",
+       subtitle = "Insider Revenue is an Increasingly Large Component of Total Revenue") +
+  xlab("Urban Population (% of Total Population)") +
+  ylab("Poverty Rate (% of Total Population)") 
 
-
-##figure out loess or don't use
-##use bbc_plot for ggplotly
+ggplotly(ggp,
+         tooltip=c("Country Name","urban_pop","poverty_rate","total_population"))
 
