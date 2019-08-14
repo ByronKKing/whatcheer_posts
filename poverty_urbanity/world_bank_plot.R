@@ -1,5 +1,7 @@
 library("readxl")
 library("plotly")
+library("htmlwidgets")
+library("widgetframe")
 
 source("~/whatcheer_posts/bbc_style_function.R")
 
@@ -69,6 +71,10 @@ summary(reg)
 reg = lm(poverty_rate ~ urban_pop, data = final)
 summary(reg)
 
+###polynomial has best fit!
+reg = lm(poverty_rate ~ poly(urban_pop,2), data = final)
+summary(reg)
+
 ## Create Plot using Plotly
 
 final$size = final$total_population
@@ -89,7 +95,6 @@ plot_ly(final,
 ## Create Plot Using GGplotly
 
 final$poverty_rate_pred = predict(reg,data = final)
-final$poverty_rate_pred[final$poverty_rate_pred<0] = 0
 
 ggp = ggplot(final,aes(x = urban_pop,y = poverty_rate,color = income_type,text = `Country Name`, group = 1)) +
   geom_point(aes(size = total_population), alpha = 0.5) + 
@@ -108,6 +113,13 @@ ggp = ggplot(final,aes(x = urban_pop,y = poverty_rate,color = income_type,text =
   xlab("Urban Population (% of Total Population)") +
   ylab("Poverty Rate (% of Total Population)") 
 
-ggplotly(ggp,
-         tooltip=c("Country Name","urban_pop","poverty_rate","total_population"))
+plotly_obj = ggplotly(ggp,
+         tooltip=c("Country Name","urban_pop","poverty_rate","total_population")) ## perhaps make tooltip display better in future
+
+##save plot
+frameWidget(plotly_obj, height = '300')
+
+htmlwidgets::saveWidget(plotly_obj, 
+                        file = "~/whatcheer_posts/poverty_urbanity/poverty_urbanity_plot.html", selfcontained = TRUE)
+
 
