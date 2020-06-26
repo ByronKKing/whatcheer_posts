@@ -1,14 +1,15 @@
 import click
+import sys
 
 import pandas as pd
 from copy import deepcopy
+
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
 @click.command()
 @click.option('export_path', '--export_path', required = True, help = "Path to folder where upload files should be saved.")
 def create_anki_uploads(export_path):
-
 	assert export_path.endswith('/')
 
 	## Authenticate (note: client_secrets.json need to be in the same directory as the script)
@@ -32,8 +33,11 @@ def create_anki_uploads(export_path):
 	jsonList = []
 	for file in fileList:
 	    if file['title'] == 'Saved translations':
-	        print('ID: %s, Date %s' % (file['id'], file['createdDate']))
+	        print('Found Saved Translation File -- ID: %s, Date Created %s' % (file['id'], file['createdDate']))
 	        jsonList.append({'id': file['id'], 'date': file['createdDate']})
+
+	if len(jsonList) < 1:
+		sys.exit('No saved translation files')
 
 	jsonList = sorted(jsonList, key=lambda x: x['date'], reverse = True)
 
@@ -74,7 +78,7 @@ def create_anki_uploads(export_path):
 	upload = drive.CreateFile({'title': 'clean_translations.csv'})
 	upload.SetContentFile(export_path + "clean_translations.csv")
 	upload.Upload()
-	print('Uploaded file with ID {}'.format(upload.get('id')))
+	print('Successfully uploaded clean file with ID {}'.format(upload.get('id')))
 
 	for file in jsonList:
 	    removeFile = drive.CreateFile({'id': file['id']})
