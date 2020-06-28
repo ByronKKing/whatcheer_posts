@@ -1,15 +1,40 @@
 import click
 import sys
+import time
+from copy import deepcopy
 
 import pandas as pd
-from copy import deepcopy
+from selenium import webdriver
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
+
+def get_stress_marks(phrase, rooglish):
+    inputElement = driver.find_element_by_id("MainContent_UserSentenceTextbox")
+    inputElement.send_keys(phrase)
+    driver.find_element_by_id("MainContent_SubmitButton").click()
+    time.sleep(3)
+    inputElement = driver.find_element_by_id("MainContent_UserSentenceTextbox")
+    stressed_phrase = inputElement.text
+    if rooglish:
+    	soundElements = driver.find_elements_by_class_name("sounds-like")
+    	sounds_like = ''
+    	for elem in soundElements:
+    		sounds_like = sounds_like + ' ' + elem.text
+    	sounds_like = sounds_like.lstrip()
+    	if stressed_phrase != sounds_like:
+    		stressed_phrase = stressed_phrase + ' (' + sounds_like + ')'
+    inputElement.clear()
+    return(stressed_phrase)
+
+
 @click.command()
 @click.option('export_path', '--export_path', required = True, help = "Path to folder where upload files should be saved.")
-def create_anki_uploads(export_path):
+@click.option('russian_stress', '--russian_stress', is_flag = True, help = "Boolean flag to scrape pronunciation symbols.")
+@click.option('rooglish', '--rooglish', is_flag = True, help = "Boolean flag to get rooglish pronunciation.")
+def create_anki_uploads(export_path, russian_stress, rooglish):
+
 	assert export_path.endswith('/')
 
 	## Authenticate (note: client_secrets.json need to be in the same directory as the script)
@@ -53,6 +78,15 @@ def create_anki_uploads(export_path):
 	ogdf.columns = ['from_lang', 'to_lang', 'from_trans', 'to_trans']
 
 	df = deepcopy(ogdf)
+
+	if russian_stress:
+		print("Accessing Russiangram")
+		driver = webdriver.Chrome()
+		driver.get("http://russiangram.com/")
+		russiandf['from_trans'] = russiandf.apply(lambda x: get_stress_marks(x.from_trans, rooglish) if x.from_lang == 'Russian' else x.from_trans, axis = 1)
+		russiandf['to_trans'] = russiandf.apply(lambda x: get_stress_marks(x.to_trans, rooglish) if x.to_lang == 'Russian' else x.to_trans, axis = 1)
+
+
 	df.drop_duplicates(['from_trans'], keep= 'first', inplace = True)
 	df.drop_duplicates(['to_trans'], keep= 'first', inplace = True)
 	df = df[df['to_trans']!=df['from_trans']]
@@ -63,7 +97,6 @@ def create_anki_uploads(export_path):
 	for lang in all_langs:
 	    if lang == 'Russian':
 	        exportdf = df[(df['from_lang']==lang)|(df['to_lang']==lang)]
-	        ##call to russiagram here
 	    if lang == 'Polish':
 	        exportdf = df[((df['from_lang']==lang)|(df['to_lang']==lang))&(df['from_lang']!='Russian')&(df['to_lang']!='Russian')]
 	    exportdf[['from_trans', 'to_trans']].to_csv(export_path+lang+'_anki_import.csv', 
@@ -83,6 +116,7 @@ def create_anki_uploads(export_path):
 	for file in jsonList:
 	    removeFile = drive.CreateFile({'id': file['id']})
 	    removeFile.Delete()
+
 
 if __name__ == "__main__":
 	create_anki_uploads()
